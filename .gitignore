@@ -30,3 +30,6 @@ bin/
 .project
 .classpath
 *pom.properties
+
+#Hadoop output files
+output/*
