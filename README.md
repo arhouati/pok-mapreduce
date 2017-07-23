@@ -22,7 +22,7 @@ use GIT to track issues
 
 ## RoadMap
 
-1/ use spark to get more performance
+V2.0 : use spark to get more performance
 
 ## Release Note
 
@@ -31,7 +31,6 @@ V1.0 (current) : a standard mapreduce based on hadoop platform
 ## License
 
 This api is published on MTI license, please read "License" file for more information. 
-
 
 ## references
 Here is a list of api, libraries and platforms used by pok-datamining :
