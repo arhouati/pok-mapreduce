@@ -32,4 +32,5 @@ bin/
 *pom.properties
 
 #Hadoop output files
-output/*
+/output/
+/output/*

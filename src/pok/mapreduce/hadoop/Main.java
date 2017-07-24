@@ -21,6 +21,9 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.ParseFilter;
+import org.apache.hadoop.hbase.filter.RegexStringComparator;
+import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -52,8 +55,8 @@ public class Main {
 		    // Filter by date  (minDate and maxDate)
             DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             long minDate = dateFormat.parse("2017/04/09 00:00:00").getTime();
-            //long maxDate = dateFormat.parse("2017/04/23 23:59:59").getTime();
-            long maxDate = dateFormat.parse("2017/04/09 23:59:59").getTime();
+            long maxDate = dateFormat.parse("2017/04/23 23:59:59").getTime();
+            //long maxDate = dateFormat.parse("2017/04/09 01:23:00").getTime();
             
             byte[] minDateByte = Bytes.toBytes(minDate + "");
             byte[] maxDateByte = Bytes.toBytes(maxDate + "");
@@ -62,25 +65,32 @@ public class Main {
             List<Filter> filters = new ArrayList<Filter>(2);
             byte[] colfam = Bytes.toBytes("Comment");
             byte[] colDate = Bytes.toBytes("Date");
-            byte[] colText = Bytes.toBytes("Text");
 
             SingleColumnValueFilter filter1 = new SingleColumnValueFilter(colfam, colDate , CompareOp.GREATER_OR_EQUAL, minDateByte);  
             filter1.setFilterIfMissing(true); 
             filters.add(filter1);
 
-            SingleColumnValueFilter filter2 = new SingleColumnValueFilter(colfam, colText, CompareOp.LESS_OR_EQUAL, maxDateByte);          
+            SingleColumnValueFilter filter2 = new SingleColumnValueFilter(colfam, colDate, CompareOp.LESS_OR_EQUAL, maxDateByte);          
             filter2.setFilterIfMissing(true);
             filters.add(filter2);
+            
+            // Filter by keyword on the text
+            String keyword = "RUE";
+            byte[] colText = Bytes.toBytes("Text");
+            
+            SingleColumnValueFilter filter3 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword+".*"));          
+            filter3.setFilterIfMissing(true);
+            filters.add(filter3);
             
             FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ALL, filters);
        
             // Create a scan
             Scan scan = new Scan();
             
-            scan.addFamily(Bytes.toBytes("Article"));
+            scan.addFamily(Bytes.toBytes("Comment"));
             scan.setCacheBlocks(false);
             scan.setCaching(1000);
-            //scan.setFilter(filterList);
+            scan.setFilter(filterList);
            
             // create Job Map Reduce
 		    Job job = Job.getInstance(config, "Text Sentiment");
