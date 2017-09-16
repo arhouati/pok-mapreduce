@@ -31,7 +31,7 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 
 	    int score = 0;
 	    
-		if( "fr".equals(lang) ){
+		if( "fr".equals(lang) && !"".equals(text)){
 			score = DataMining.process( text , lang);
 			System.out.println("# text row : " + row );
 		}
