@@ -2600,6 +2600,7 @@ id;word;polarity;joy;fear;sadness;anger;surprise;disgust
 2599;avion;positive;0;0;0;0;0;0
 2600;aviron;negative;0;0;0;0;0;0
 2601;aviser;positive;0;0;0;0;0;0
+2602;avoir;positive;0;0;0;0;0;0
 2602;avoir confiance;positive;0;0;0;0;0;0
 2603;avoir du difficulté;negative;0;1;1;0;0;0
 2604;avoir en horreur;negative;0;1;0;1;0;1
