@@ -1,6 +1,9 @@
 package pok.mapreduce.hadoop;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -14,8 +17,14 @@ import pok.algorithm.DataMining;
 public class MyMapper extends TableMapper<Text, LongWritable> {
 
 	private final LongWritable ONE = new LongWritable(1);
+	private final FileWriter fstream;
+	private final BufferedWriter out;
 	
-    public MyMapper() {
+    public MyMapper() throws IOException {
+    	
+		fstream = new FileWriter("output/sentences.txt", true); //true tells to append data.
+	    out = new BufferedWriter(fstream);
+
     }
 
 	@Override
@@ -33,11 +42,18 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 	    
 		if( "fr".equals(lang) && !"".equals(text)){
 			score = DataMining.process( text , lang);
-			System.out.println("# text row : " + row );
 		}
+		
+		if( text.equals( " ") ){
+		    wait();
+		}
+
 		
 		if (score > 0) {
 			context.write(new Text("positive"), ONE);
+			
+		    out.write("score = " + score  + "---" + text  + "\n" );
+	        
 		}else if (score < 0) {
 			context.write(new Text("negative"), ONE);
 		}else if (score == 0){
