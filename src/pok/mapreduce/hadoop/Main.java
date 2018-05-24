@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 //TODO : refactoring of codes
+//TODO : use only ressource of datamining, not copy it
 public class Main {
 
 	static private Properties hbasePropertiesFile;
@@ -55,8 +56,8 @@ public class Main {
 		    // Filter by date  (minDate and maxDate)
             DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             long minDate = dateFormat.parse("2017/04/09 00:00:00").getTime();
-            long maxDate = dateFormat.parse("2017/04/23 23:59:59").getTime();
-            //long maxDate = dateFormat.parse("2017/04/09 01:23:00").getTime();
+            //long maxDate = dateFormat.parse("2017/04/23 23:59:59").getTime();
+            long maxDate = dateFormat.parse("2017/04/09 23:59:00").getTime();
             
             byte[] minDateByte = Bytes.toBytes(minDate + "");
             byte[] maxDateByte = Bytes.toBytes(maxDate + "");
@@ -75,19 +76,42 @@ public class Main {
             filters.add(filter2);
             
             // Filter by keyword on the text
-            String keyword = "RUE";
+            List<Filter> filtersText = new ArrayList<Filter>(2);
+
+            String keyword1 = "Fillon";
+            String keyword2 = "@FrancoisFillon";
+            String keyword3 = "Filloniste";
+            String keyword4 = "#Fillon";
+
             byte[] colText = Bytes.toBytes("Text");
             
-            SingleColumnValueFilter filter3 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword+".*"));          
-            filter3.setFilterIfMissing(true);
+            SingleColumnValueFilter filterText1 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword1+".*"));
+            filterText1.setFilterIfMissing(true);
+            filtersText.add(filterText1);
+
+            SingleColumnValueFilter filterText2 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword2+".*"));
+            filterText2.setFilterIfMissing(true);
+            filtersText.add(filterText2);
+
+            SingleColumnValueFilter filterText3 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword3+".*"));
+            filterText3.setFilterIfMissing(true);
+            filtersText.add(filterText3);
+
+            SingleColumnValueFilter filterText4 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword4+".*"));          
+            filterText4.setFilterIfMissing(true);
+            filtersText.add(filterText4);
+
+            FilterList filter3 = new FilterList(FilterList.Operator.MUST_PASS_ONE, filtersText);
             filters.add(filter3);
-            
+
+            // combine all filters
             FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ALL, filters);
        
             // Create a scan
             Scan scan = new Scan();
             
             scan.addFamily(Bytes.toBytes("Comment"));
+            scan.addFamily(Bytes.toBytes("User"));
             scan.setCacheBlocks(false);
             scan.setCaching(1000);
             scan.setFilter(filterList);
@@ -98,7 +122,7 @@ public class Main {
 		    
             // Configure the Map process to use HBase
             TableMapReduceUtil.initTableMapperJob(
-                    "poc:election-fr",              // The name of the table
+                    "pok:election-fr",              // The name of the table
                     scan,                           // The scan to execute against the table
                     MyMapper.class,                 // The Mapper class
                     Text.class,            			// The Mapper output key class

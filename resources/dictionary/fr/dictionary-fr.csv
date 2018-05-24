@@ -980,7 +980,7 @@ id;word;polarity;joy;fear;sadness;anger;surprise;disgust
 979;métier;positive;0;0;0;0;0;0
 980;mettre en liberté conditionnel;positive;0;0;0;0;0;0
 981;meulage;negative;0;0;0;1;0;1
-982;meurtrier|meurtrière;negative;0;1;1;1;1;1
+982;meurtrier;negative;0;1;1;1;1;1
 983;militant;negative;0;0;0;1;0;0
 984;mince;negative;0;1;1;0;0;0
 985;miniature;negative;0;1;1;0;0;0
@@ -11068,7 +11068,7 @@ id;word;polarity;joy;fear;sadness;anger;surprise;disgust
 11068;purification;positive;0;0;0;0;0;1
 11069;purin;negative;0;0;0;0;0;1
 11070;puriste;positive;0;0;0;0;0;0
-11071;pouvoir;negative;0;0;0;0;0;1
+11071;pouvoir;positive;0;0;0;0;0;1
 11072;putain;negative;0;0;0;0;0;1
 11073;pute;negative;0;0;0;0;0;1
 11074;putois;negative;0;0;0;0;0;1
@@ -12527,7 +12527,7 @@ id;word;polarity;joy;fear;sadness;anger;surprise;disgust
 12527;serviette;positive;0;0;0;0;0;0
 12528;serviette de table;positive;0;0;1;0;0;0
 12529;servile;negative;0;1;1;1;0;1
-12530;servir;negative;0;0;0;0;0;0
+12530;servir;positive;0;0;0;0;0;0
 12531;servir à le louche;positive;0;0;0;0;0;0
 12532;serviteur;positive;0;0;0;0;0;0
 12533;servitude;negative;0;1;1;1;0;0
@@ -14064,7 +14064,7 @@ id;word;polarity;joy;fear;sadness;anger;surprise;disgust
 14064;voter pour;positive;0;0;0;0;0;0
 14065;votif;positive;0;0;0;0;0;0
 14066;vouer;positive;0;0;0;0;0;0
-14067;vouloir;negative;0;1;1;0;0;0
+14067;vouloir;positive;0;1;1;0;0;0
 14068;voûte;positive;0;1;1;0;0;0
 14069;voûter;negative;0;0;1;0;0;0
 14070;voyage;positive;0;1;0;0;1;0
@@ -14127,3 +14127,4 @@ id;word;polarity;joy;fear;sadness;anger;surprise;disgust
 14127;remercier;positive;1;0;0;0;0;0
 14128;remerciment;positive;1;0;0;0;0;0
 14129;moins;negative;0;0;0;0;0;0
+14130;meurtre;negative;0;0;0;0;0;0

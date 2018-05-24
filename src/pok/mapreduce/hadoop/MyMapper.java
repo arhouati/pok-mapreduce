@@ -16,7 +16,10 @@ import pok.algorithm.DataMining;
 
 public class MyMapper extends TableMapper<Text, LongWritable> {
 
-	private final LongWritable ONE = new LongWritable(1);
+	private final LongWritable Positive = new LongWritable(1);
+	private final LongWritable Negative = new LongWritable(-1);
+	private final LongWritable Neutral = new LongWritable(0);
+
 	private final FileWriter fstream;
 	private final BufferedWriter out;
 	
@@ -37,6 +40,9 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 	    
 		byte[] langByte = columns.getValue("Comment".getBytes(), "Lang".getBytes());
 	    String lang = Bytes.toString(langByte).trim();
+	    
+		byte[] userByte = columns.getValue("User".getBytes(), "Identifiant".getBytes());
+	    String user = Bytes.toString(userByte).trim();
 
 	    int score = 0;
 	    
@@ -44,20 +50,16 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 			score = DataMining.process( text , lang);
 		}
 		
-		if( text.equals( " ") ){
-		    wait();
-		}
-
-		
 		if (score > 0) {
-			context.write(new Text("positive"), ONE);
-			
-		    out.write("score = " + score  + "---" + text  + "\n" );
+			context.write(new Text(user), Positive);
 	        
 		}else if (score < 0) {
-			context.write(new Text("negative"), ONE);
+			context.write(new Text(user), Negative);
+			
 		}else if (score == 0){
-			context.write(new Text("neutral"), ONE);
+			context.write(new Text(user), Neutral);
+			
 		}
+		
 	}
 }
