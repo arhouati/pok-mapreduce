@@ -27,25 +27,41 @@ import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
+import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 //TODO : refactoring of codes
 //TODO : use only ressource of datamining, not copy it
-public class Main {
+public class Main implements Tool {
 
 	static private Properties hbasePropertiesFile;
 
 	static private Configuration config;
 	
-	public static void main(String[] args) throws ParseException {
-		
+	public int run(String[] args) throws Exception {
+
 		System.setProperty("hadoop.home.dir", "/");	
+		
+        // delete output directory
+        FileSystem fs = FileSystem.get(new Configuration());
+        fs.delete(new Path("output"), true);
 
 		try {
+			
+			/////////////////////////////////:
+			// Define Scan for hbase
+			/////////////////////////////////:
+
 			hbasePropertiesFile = loadPropetyFile("hbase.properties");
 			
 			System.out.println("# init config :: Standalone HBase without HDFS ");
@@ -56,8 +72,8 @@ public class Main {
 		    // Filter by date  (minDate and maxDate)
             DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             long minDate = dateFormat.parse("2017/04/09 00:00:00").getTime();
-            //long maxDate = dateFormat.parse("2017/04/23 23:59:59").getTime();
-            long maxDate = dateFormat.parse("2017/04/09 23:59:00").getTime();
+            long maxDate = dateFormat.parse("2017/04/09 01:59:59").getTime();
+            //long maxDate = dateFormat.parse("2017/04/09 23:59:00").getTime();
             
             byte[] minDateByte = Bytes.toBytes(minDate + "");
             byte[] maxDateByte = Bytes.toBytes(maxDate + "");
@@ -115,50 +131,110 @@ public class Main {
             scan.setCacheBlocks(false);
             scan.setCaching(1000);
             scan.setFilter(filterList);
-           
-            // create Job Map Reduce
-		    Job job = Job.getInstance(config, "Text Sentiment");
-		    job.setJarByClass(Main.class);
+            
+			/////////////////////////////////:
+			/////////////////////////////////:
+            
+            // create Job Map Reduce for Distinct User Sentiment Analysis
+		    Job jobDistinctUser = Job.getInstance(config, "Distinct User Sentiment Analysis");
+		    jobDistinctUser.setJarByClass(Main.class);
 		    
-            // Configure the Map process to use HBase
+		    // Configure the Map process to use HBase
             TableMapReduceUtil.initTableMapperJob(
                     "pok:election-fr",              // The name of the table
                     scan,                           // The scan to execute against the table
-                    MyMapper.class,                 // The Mapper class
+                    MapperDistinctUser.class,                 // The Mapper class
                     Text.class,            			// The Mapper output key class
                     LongWritable.class,             // The Mapper output value class
-                    job ); 
+                    jobDistinctUser ); 
             
 		    // Configure the reducer process
-            job.setReducerClass( MyReducer.class );
-            job.setCombinerClass( MyReducer.class );
+            jobDistinctUser.setReducerClass( ReducerDistinctUser.class );
+            jobDistinctUser.setCombinerClass( ReducerDistinctUser.class );
 		    
             // Setup the output - we'll write to the file system: orientation(positive, negative or neutral)   count
-            job.setOutputKeyClass( Text.class );
-            job.setOutputValueClass( LongWritable.class );
-            job.setOutputFormatClass( TextOutputFormat.class );
+            jobDistinctUser.setOutputKeyClass( Text.class );
+            jobDistinctUser.setOutputValueClass( LongWritable.class );
+            jobDistinctUser.setOutputFormatClass( TextOutputFormat.class );
             
             // We'll run just one reduce task, but we could run multiple
-            job.setNumReduceTasks( 1 );
-            			
-            // delete output directory
-            FileSystem fs = FileSystem.get(new Configuration());
-            fs.delete(new Path("output"), true);
+            jobDistinctUser.setNumReduceTasks( 1 );
             
-		    FileOutputFormat.setOutputPath(job, new Path( "output" ));
-		    		
-		    System.exit(job.waitForCompletion(true) ? 0 : 1);	
-			
+		    FileOutputFormat.setOutputPath(jobDistinctUser, new Path( "output/userdistinct" ));
+		    
+		    JobControl jobControl = new JobControl("jobChain"); 
+
+		    ControlledJob controlledJobDistinctUser = new ControlledJob(config);
+		    controlledJobDistinctUser.setJob(jobDistinctUser);
+
+		    jobControl.addJob(controlledJobDistinctUser);
+		    
+		    // create Job Map Reduce for Sum Sentiment Analysis
+		    Job jobSumSentimentAnalysis = Job.getInstance(config, "Sum Sentimens Analysis");
+		    jobSumSentimentAnalysis.setJarByClass(Main.class);
+		    
+		    FileInputFormat.setInputPaths(jobSumSentimentAnalysis, new Path("output/userdistinct"));
+		    FileOutputFormat.setOutputPath(jobSumSentimentAnalysis, new Path("output/final"));
+		    
+		    jobSumSentimentAnalysis.setMapperClass(MapperSumSentiment.class);
+		    jobSumSentimentAnalysis.setReducerClass(ReducerSumSentiment.class);
+		    jobSumSentimentAnalysis.setCombinerClass(ReducerSumSentiment.class);
+		    
+		    jobSumSentimentAnalysis.setOutputKeyClass(Text.class);
+		    jobSumSentimentAnalysis.setOutputValueClass(LongWritable.class);
+		    jobSumSentimentAnalysis.setInputFormatClass(KeyValueTextInputFormat.class);
+		    
+		    ControlledJob controlledJobSumSentimentAnalysis = new ControlledJob(config);
+		    controlledJobSumSentimentAnalysis.setJob(jobSumSentimentAnalysis);
+		    
+		    controlledJobSumSentimentAnalysis.addDependingJob(controlledJobDistinctUser); 
+
+		    // add the job to the job control
+		    jobControl.addJob(controlledJobSumSentimentAnalysis);
+		    
+		    Thread jobControlThread = new Thread(jobControl);
+		    jobControlThread.start();
+		    
+		    while (!jobControl.allFinished()) {
+		        System.out.println("Jobs in waiting state: " + jobControl.getWaitingJobList().size());  
+		        System.out.println("Jobs in ready state: " + jobControl.getReadyJobsList().size());
+		        System.out.println("Jobs in running state: " + jobControl.getRunningJobList().size());
+		        System.out.println("Jobs in success state: " + jobControl.getSuccessfulJobList().size());
+		        System.out.println("Jobs in failed state: " + jobControl.getFailedJobList().size());
+		        
+		        try {
+		        	Thread.sleep(5000);
+		        } catch (Exception e) {
+
+		        }
+
+		      } 
+		       
+		    //System.exit(0);  
+		    
+	   		return (jobSumSentimentAnalysis.waitForCompletion(true) ? 0 : 1); 
+		    	   		
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return 0;
 		}
+
+	  } 
+	
+	public static void main(String[] args) throws ParseException {
+	
+		int exitCode = 0;
+		
+		try {
+			exitCode = ToolRunner.run(new Main(), args);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+		
+		System.exit(exitCode);
+		
 	}
 	
 	private static Properties loadPropetyFile( String file) throws IOException{
@@ -172,6 +248,18 @@ public class Main {
 		};
 		
 		return propetiesFile;
+		
+	}
+
+	@Override
+	public Configuration getConf() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setConf(Configuration arg0) {
+		// TODO Auto-generated method stub
 		
 	}
 }

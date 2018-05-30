@@ -14,7 +14,7 @@ import org.apache.hadoop.io.Text;
 
 import pok.algorithm.DataMining;
 
-public class MyMapper extends TableMapper<Text, LongWritable> {
+public class MapperDistinctUser extends TableMapper<Text, LongWritable> {
 
 	private final LongWritable Positive = new LongWritable(1);
 	private final LongWritable Negative = new LongWritable(-1);
@@ -23,7 +23,7 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 	private final FileWriter fstream;
 	private final BufferedWriter out;
 	
-    public MyMapper() throws IOException {
+    public MapperDistinctUser() throws IOException {
     	
 		fstream = new FileWriter("output/sentences.txt", true); //true tells to append data.
 	    out = new BufferedWriter(fstream);
@@ -33,7 +33,7 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 	@Override
 	protected void map(ImmutableBytesWritable row, Result columns, Context context) throws IOException, InterruptedException {
 		
-		System.out.println("poc : Map : process row");
+		System.out.println("poc : Map Distinct User : process row");
 		
 		byte[] textByte = columns.getValue("Comment".getBytes(), "Text".getBytes());
 	    String text = Bytes.toString(textByte);
@@ -42,7 +42,7 @@ public class MyMapper extends TableMapper<Text, LongWritable> {
 	    String lang = Bytes.toString(langByte).trim();
 	    
 		byte[] userByte = columns.getValue("User".getBytes(), "Identifiant".getBytes());
-	    String user = Bytes.toString(userByte).trim();
+	    String user = Bytes.toString(userByte).trim().replaceAll("\\s","");
 
 	    int score = 0;
 	    
