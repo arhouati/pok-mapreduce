@@ -29,6 +29,7 @@ target/*
 bin/
 .settings/
 .settings/*
+.settings/*/*
 .project
 .classpath
 *pom.properties

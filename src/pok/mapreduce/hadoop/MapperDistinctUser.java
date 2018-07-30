@@ -3,7 +3,6 @@ package pok.mapreduce.hadoop;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -13,20 +12,40 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 
 import pok.algorithm.DataMining;
+import pok.mapreduce.txt.tools.PreProcessador;
 
 public class MapperDistinctUser extends TableMapper<Text, LongWritable> {
+
 
 	private final LongWritable Positive = new LongWritable(1);
 	private final LongWritable Negative = new LongWritable(-1);
 	private final LongWritable Neutral = new LongWritable(0);
 
-	private final FileWriter fstream;
-	private final BufferedWriter out;
+	/*
+ 	private final FileWriter fstreamPositive;
+	private final FileWriter fstreamNegative;
+	private final FileWriter fstreamNeutral;
+
+	private final BufferedWriter outPositve;
+	private final BufferedWriter outNegative;
+	private final BufferedWriter outNeutral;
+	*/
 	
-    public MapperDistinctUser() throws IOException {
-    	
-		fstream = new FileWriter("output/sentences.txt", true); //true tells to append data.
-	    out = new BufferedWriter(fstream);
+    public MapperDistinctUser() {
+    
+    	/*
+    	String candidat = "Macron";
+    	fstreamPositive = new FileWriter("output/"+candidat + "_positive_tweets.txt", true); 
+    	fstreamNegative = new FileWriter("output/"+candidat + "_negative_tweets.txt", true); 
+    	fstreamNeutral = new FileWriter("output/"+candidat + "_neutral_tweets.txt", true);
+	    outPositve = new BufferedWriter(fstreamPositive);
+	    outNegative = new BufferedWriter(fstreamNegative);
+	    outNeutral = new BufferedWriter(fstreamNeutral);
+
+	    outPositve.write("sentiment|tweet");outPositve.newLine();
+	    outNegative.write("sentiment|tweet");outNegative.newLine();
+	    outNeutral.write("sentiment|tweet");outNeutral.newLine();
+	    */
 
     }
 
@@ -43,23 +62,32 @@ public class MapperDistinctUser extends TableMapper<Text, LongWritable> {
 	    
 		byte[] userByte = columns.getValue("User".getBytes(), "Identifiant".getBytes());
 	    String user = Bytes.toString(userByte).trim().replaceAll("\\s","");
-
-	    int score = 0;
 	    
+	   // String textProcess;
+	    int score = 0;
+	    	    
 		if( "fr".equals(lang) && !"".equals(text)){
-			score = DataMining.process( text , lang);
-		}
-		
-		if (score > 0) {
-			context.write(new Text(user), Positive);
-	        
-		}else if (score < 0) {
-			context.write(new Text(user), Negative);
+			try {
+				PreProcessador val = new PreProcessador();
+				//text = val.cleanup( text );
+				score = DataMining.process( text , lang);
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
 			
-		}else if (score == 0){
-			context.write(new Text(user), Neutral);
-			
+			if (score > 0) {
+			    //outPositve.write( Positive + "|" +  text );outPositve.newLine();
+				context.write(new Text(user), Positive);
+		        
+			}else if (score < 0) {
+				//outNegative.write( Negative + "|" + text );outNegative.newLine();
+				context.write(new Text(user), Negative);
+				
+			}else if (score == 0){
+				//outNeutral.write( Neutral + "|" + text );outNeutral.newLine();
+				context.write(new Text(user), Neutral);
+				
+			}
 		}
-		
 	}
 }

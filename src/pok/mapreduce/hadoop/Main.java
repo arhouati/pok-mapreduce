@@ -1,6 +1,5 @@
 package pok.mapreduce.hadoop;
 
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,9 +7,11 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -21,13 +22,10 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.ParseFilter;
 import org.apache.hadoop.hbase.filter.RegexStringComparator;
-import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -44,10 +42,38 @@ import org.apache.hadoop.util.ToolRunner;
 //TODO : use only ressource of datamining, not copy it
 public class Main implements Tool {
 
+    private static final Map<String, List<String>> candidatTags;
+    
+    // The tags of the different candidates
+	static {
+		
+		@SuppressWarnings("serial")
+		Map<String, List<String>> candidatTagsTemp = new HashMap<String, List<String>>() {
+			{
+				put("Le Pen", Arrays.asList("@MLP_officiel","@FN_officiel", "Le Pen"));
+				put("Macron", Arrays.asList("@EmmanuelMacron", "#EmmanuelMacron", "EmmanuelMacron", "@enmarchefr","#Macron", "Macron"));
+				put("Fillon", Arrays.asList("@FrancoisFillon","@Fillon2017_fr","@lesRepublicains", "#Fillon", "Fillon"));
+				
+				put("Mélenchon", Arrays.asList("@JLMelenchon","@jlm_2017"));
+				put("Hamon", Arrays.asList("@benoithamon","@AvecHamon2017","@partisocialiste"));
+				put("Dupont-Aignan", Arrays.asList("@dupontaignan","@DLF_Officiel"));
+				put("Cheminade", Arrays.asList("@JCheminade"));
+				put("Arthaud", Arrays.asList("@n_arthaud","@LutteOuvriere"));
+				put("Asselineau", Arrays.asList("@UPR_Asselineau","@UPR_Officiel"));
+				put("Poutou", Arrays.asList("@PhilippePoutou","@NPA_officiel"));
+				put("Lassalle", Arrays.asList("@jeanlassalle"));
+			}
+		};
+		
+		candidatTags = Collections.unmodifiableMap(candidatTagsTemp);
+        
+    }
+	
 	static private Properties hbasePropertiesFile;
 
 	static private Configuration config;
 	
+	@SuppressWarnings("deprecation")
 	public int run(String[] args) throws Exception {
 
 		System.setProperty("hadoop.home.dir", "/");	
@@ -58,22 +84,25 @@ public class Main implements Tool {
 
 		try {
 			
-			/////////////////////////////////:
-			// Define Scan for hbase
-			/////////////////////////////////:
-
 			hbasePropertiesFile = loadPropetyFile("hbase.properties");
-			
-			System.out.println("# init config :: Standalone HBase without HDFS ");
+
+		    JobControl jobControl = new JobControl("jobChain"); 
+
+		    System.out.println("# init config :: Standalone HBase without HDFS ");
 			config = HBaseConfiguration.create();
 			config.set("hbase.zookeeper.property.clientPort", hbasePropertiesFile.getProperty("hbase.zookeeper.property.clientPort"));
 			config.set("mapred.job.tracker", hbasePropertiesFile.getProperty("mapred.job.tracker"));
-            
+			config.set("mapred.textoutputformat.separator", ";");
+			
+			/////////////////////////////////:
+			// Define Scan for hbase
+			/////////////////////////////////:			
+			 
 		    // Filter by date  (minDate and maxDate)
             DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-            long minDate = dateFormat.parse("2017/04/09 00:00:00").getTime();
-            long maxDate = dateFormat.parse("2017/04/09 01:59:59").getTime();
-            //long maxDate = dateFormat.parse("2017/04/09 23:59:00").getTime();
+            long minDate = dateFormat.parse("2017/04/24 00:00:00").getTime();
+            //long maxDate = dateFormat.parse("2017/04/09 01:59:59").getTime();
+            long maxDate = dateFormat.parse("2017/04/24 23:59:59").getTime();
             
             byte[] minDateByte = Bytes.toBytes(minDate + "");
             byte[] maxDateByte = Bytes.toBytes(maxDate + "");
@@ -92,32 +121,21 @@ public class Main implements Tool {
             filters.add(filter2);
             
             // Filter by keyword on the text
-            List<Filter> filtersText = new ArrayList<Filter>(2);
-
-            String keyword1 = "Fillon";
-            String keyword2 = "@FrancoisFillon";
-            String keyword3 = "Filloniste";
-            String keyword4 = "#Fillon";
+            List<Filter> filtersTextList = new ArrayList<Filter>(2);
+            
+            String candidate = "Macron";      
 
             byte[] colText = Bytes.toBytes("Text");
+            SingleColumnValueFilter filterText;
             
-            SingleColumnValueFilter filterText1 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword1+".*"));
-            filterText1.setFilterIfMissing(true);
-            filtersText.add(filterText1);
+            List<String> candidatTagList = candidatTags.get(candidate);
+            for( String tag : candidatTagList) {
+            	filterText = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+tag+".*"));
+            	filterText.setFilterIfMissing(true);
+            	filtersTextList.add(filterText);
+            }
 
-            SingleColumnValueFilter filterText2 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword2+".*"));
-            filterText2.setFilterIfMissing(true);
-            filtersText.add(filterText2);
-
-            SingleColumnValueFilter filterText3 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword3+".*"));
-            filterText3.setFilterIfMissing(true);
-            filtersText.add(filterText3);
-
-            SingleColumnValueFilter filterText4 = new SingleColumnValueFilter(colfam, colText, CompareOp.EQUAL, new RegexStringComparator(".*"+keyword4+".*"));          
-            filterText4.setFilterIfMissing(true);
-            filtersText.add(filterText4);
-
-            FilterList filter3 = new FilterList(FilterList.Operator.MUST_PASS_ONE, filtersText);
+            FilterList filter3 = new FilterList(FilterList.Operator.MUST_PASS_ONE, filtersTextList);
             filters.add(filter3);
 
             // combine all filters
@@ -141,7 +159,7 @@ public class Main implements Tool {
 		    
 		    // Configure the Map process to use HBase
             TableMapReduceUtil.initTableMapperJob(
-                    "pok:election-fr",              // The name of the table
+                    "pok:election",              // The name of the table
                     scan,                           // The scan to execute against the table
                     MapperDistinctUser.class,                 // The Mapper class
                     Text.class,            			// The Mapper output key class
@@ -160,60 +178,69 @@ public class Main implements Tool {
             // We'll run just one reduce task, but we could run multiple
             jobDistinctUser.setNumReduceTasks( 1 );
             
-		    FileOutputFormat.setOutputPath(jobDistinctUser, new Path( "output/userdistinct" ));
+		    Path outputPath = new Path("output/userdistinct");
 		    
-		    JobControl jobControl = new JobControl("jobChain"); 
+		    FileOutputFormat.setOutputPath(jobDistinctUser, outputPath);
 
 		    ControlledJob controlledJobDistinctUser = new ControlledJob(config);
 		    controlledJobDistinctUser.setJob(jobDistinctUser);
 
 		    jobControl.addJob(controlledJobDistinctUser);
 		    
+		    
 		    // create Job Map Reduce for Sum Sentiment Analysis
+		    config = new Configuration();
+		    config.set("key.value.separator.in.input.line", ";");
+		    config.set("mapred.textoutputformat.separator", ";");
+		    
 		    Job jobSumSentimentAnalysis = Job.getInstance(config, "Sum Sentimens Analysis");
 		    jobSumSentimentAnalysis.setJarByClass(Main.class);
-		    
-		    FileInputFormat.setInputPaths(jobSumSentimentAnalysis, new Path("output/userdistinct"));
-		    FileOutputFormat.setOutputPath(jobSumSentimentAnalysis, new Path("output/final"));
-		    
+		    		    
 		    jobSumSentimentAnalysis.setMapperClass(MapperSumSentiment.class);
 		    jobSumSentimentAnalysis.setReducerClass(ReducerSumSentiment.class);
 		    jobSumSentimentAnalysis.setCombinerClass(ReducerSumSentiment.class);
 		    
 		    jobSumSentimentAnalysis.setOutputKeyClass(Text.class);
 		    jobSumSentimentAnalysis.setOutputValueClass(LongWritable.class);
-		    jobSumSentimentAnalysis.setInputFormatClass(KeyValueTextInputFormat.class);
 		    
+		    jobSumSentimentAnalysis.setInputFormatClass(KeyValueTextInputFormat.class);
+		    		
+		    FileInputFormat.addInputPath(jobSumSentimentAnalysis, new Path("output/userdistinct/part-r-00000"));
+		    FileOutputFormat.setOutputPath(jobSumSentimentAnalysis, new Path("output/final"));
+		    		    
+		    // We'll run just one reduce task, but we could run multiple
+		    jobSumSentimentAnalysis.setNumReduceTasks( 1 );
+		    		    
 		    ControlledJob controlledJobSumSentimentAnalysis = new ControlledJob(config);
 		    controlledJobSumSentimentAnalysis.setJob(jobSumSentimentAnalysis);
 		    
 		    controlledJobSumSentimentAnalysis.addDependingJob(controlledJobDistinctUser); 
 
 		    // add the job to the job control
-		    jobControl.addJob(controlledJobSumSentimentAnalysis);
+		    jobControl.addJob(controlledJobSumSentimentAnalysis); 
 		    
 		    Thread jobControlThread = new Thread(jobControl);
 		    jobControlThread.start();
-		    
-		    while (!jobControl.allFinished()) {
+
+		    while (!jobControl.allFinished()) {		    	
+		        System.out.println("============================================");  
 		        System.out.println("Jobs in waiting state: " + jobControl.getWaitingJobList().size());  
 		        System.out.println("Jobs in ready state: " + jobControl.getReadyJobsList().size());
 		        System.out.println("Jobs in running state: " + jobControl.getRunningJobList().size());
 		        System.out.println("Jobs in success state: " + jobControl.getSuccessfulJobList().size());
-		        System.out.println("Jobs in failed state: " + jobControl.getFailedJobList().size());
-		        
+		        System.out.println("Jobs in failed state: " + jobControl.getFailedJobList().size());		        
+		        System.out.println("============================================");
+		        		        
 		        try {
 		        	Thread.sleep(5000);
 		        } catch (Exception e) {
-
+		        	e.printStackTrace();
 		        }
 
 		      } 
-		       
-		    //System.exit(0);  
-		    
-	   		return (jobSumSentimentAnalysis.waitForCompletion(true) ? 0 : 1); 
-		    	   		
+
+		    return ( jobSumSentimentAnalysis.waitForCompletion(true) ? 0 : 1 );
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

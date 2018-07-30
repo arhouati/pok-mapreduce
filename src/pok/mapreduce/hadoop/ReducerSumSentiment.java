@@ -6,7 +6,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
-public class ReducerSumSentiment extends  Reducer<Text, LongWritable, Text, LongWritable>{
+public class ReducerSumSentiment extends Reducer<Text, LongWritable, Text, LongWritable>{
 
 	public ReducerSumSentiment() {
     }
