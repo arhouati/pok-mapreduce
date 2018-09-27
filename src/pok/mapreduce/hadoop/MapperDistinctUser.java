@@ -64,30 +64,34 @@ public class MapperDistinctUser extends TableMapper<Text, LongWritable> {
 	    String user = Bytes.toString(userByte).trim().replaceAll("\\s","");
 	    
 	   // String textProcess;
-	    int score = 0;
+	   int score = 0;
 	    	    
 		if( "fr".equals(lang) && !"".equals(text)){
 			try {
 				PreProcessador val = new PreProcessador();
 				//text = val.cleanup( text );
 				score = DataMining.process( text , lang);
+				
+				if (score > 0) {
+				    //outPositve.write( Positive + "|" +  text );outPositve.newLine();
+					context.write(new Text(user), Positive);
+			        
+				}else if (score < 0) {
+					//outNegative.write( Negative + "|" + text );outNegative.newLine();
+					context.write(new Text(user), Negative);
+					
+				}else if (score == 0){
+					//outNeutral.write( Neutral + "|" + text );outNeutral.newLine();
+					context.write(new Text(user), Neutral);
+					
+				}
+				
 			} catch (Exception e) {
-				// TODO: handle exception
+				System.out.println("Exception : " + e.getMessage() );
+
 			}
 			
-			if (score > 0) {
-			    //outPositve.write( Positive + "|" +  text );outPositve.newLine();
-				context.write(new Text(user), Positive);
-		        
-			}else if (score < 0) {
-				//outNegative.write( Negative + "|" + text );outNegative.newLine();
-				context.write(new Text(user), Negative);
-				
-			}else if (score == 0){
-				//outNeutral.write( Neutral + "|" + text );outNeutral.newLine();
-				context.write(new Text(user), Neutral);
-				
-			}
 		}
+		
 	}
 }

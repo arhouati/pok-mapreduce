@@ -16,15 +16,20 @@ public class ReducerSumSentiment extends Reducer<Text, LongWritable, Text, LongW
 		
 		System.out.println("poc : Reduce Sum Sentiment : process");
 		
-		// Add up all of the page views for this hour
-        long sum = 0;
-        for( LongWritable count : values )
-        {
-            sum += count.get();
-        }
+		try {
+			// Add up all of the page views for this hour
+	        long sum = 0;
+	        for( LongWritable count : values )
+	        {
+	            sum += count.get();
+	        }
 
-        // Write out the current hour and the sum
-        context.write( key, new LongWritable( sum ) );
+	        // Write out the current hour and the sum
+	        context.write( key, new LongWritable( sum ) );
+		} catch (Exception e) {
+			System.out.println("Exception : " + e.getMessage() );
+		}
+		
 	}
 	
 }

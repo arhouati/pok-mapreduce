@@ -25,18 +25,25 @@ public class MapperSumSentiment extends Mapper<Text, Text, Text, LongWritable>  
 		
 		System.out.println("poc : Map Sum Sentiment : process row");
 	
-		float score = Float.parseFloat( value.toString() );
+		try {
+			float score = Float.parseFloat( value.toString() );
+			
+			if ( score > 0) {
+				context.write(new Text("positive"), One);
+				
+			}else if (score < 0) {
+				context.write(new Text("negative"), One);
+				
+			}else if (score == 0){
+				context.write(new Text("neutral"), One);
+				
+			}
 		
-		if ( score > 0) {
-			context.write(new Text("positive"), One);
-			
-		}else if (score < 0) {
-			context.write(new Text("negative"), One);
-			
-		}else if (score == 0){
-			context.write(new Text("neutral"), One);
-			
+		} catch (Exception e) {
+			System.out.println("Exception : " + e.getMessage() );
 		}
+		
+		
 		
 	}
 }

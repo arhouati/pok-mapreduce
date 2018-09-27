@@ -100,10 +100,9 @@ public class Main implements Tool {
 			 
 		    // Filter by date  (minDate and maxDate)
             DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-            long minDate = dateFormat.parse("2017/04/24 00:00:00").getTime();
-            //long maxDate = dateFormat.parse("2017/04/09 01:59:59").getTime();
-            long maxDate = dateFormat.parse("2017/04/24 23:59:59").getTime();
-            
+            long minDate = dateFormat.parse("2017/05/10 00:00:00").getTime();
+            long maxDate = dateFormat.parse("2017/05/10 23:59:59").getTime();
+            			
             byte[] minDateByte = Bytes.toBytes(minDate + "");
             byte[] maxDateByte = Bytes.toBytes(maxDate + "");
             
@@ -111,6 +110,9 @@ public class Main implements Tool {
             List<Filter> filters = new ArrayList<Filter>(2);
             byte[] colfam = Bytes.toBytes("Comment");
             byte[] colDate = Bytes.toBytes("Date");
+            byte[] mentionMacron = Bytes.toBytes("mention_Macron");
+            byte[] mentionFillon = Bytes.toBytes("mention_Fillon");
+            byte[] mentionLePen = Bytes.toBytes("mention_LePen");
 
             SingleColumnValueFilter filter1 = new SingleColumnValueFilter(colfam, colDate , CompareOp.GREATER_OR_EQUAL, minDateByte);  
             filter1.setFilterIfMissing(true); 
@@ -123,7 +125,7 @@ public class Main implements Tool {
             // Filter by keyword on the text
             List<Filter> filtersTextList = new ArrayList<Filter>(2);
             
-            String candidate = "Macron";      
+            String candidate = "Fillon";      
 
             byte[] colText = Bytes.toBytes("Text");
             SingleColumnValueFilter filterText;
@@ -134,9 +136,15 @@ public class Main implements Tool {
             	filterText.setFilterIfMissing(true);
             	filtersTextList.add(filterText);
             }
-
-            FilterList filter3 = new FilterList(FilterList.Operator.MUST_PASS_ONE, filtersTextList);
-            filters.add(filter3);
+        	
+            //FilterList filter3 = new FilterList(FilterList.Operator.MUST_PASS_ONE, filtersTextList);
+            //filters.add(filter3);
+            
+            SingleColumnValueFilter filterMention;
+            filterMention = new SingleColumnValueFilter(colfam, mentionLePen, CompareOp.EQUAL, new RegexStringComparator("1"));
+            filterMention.setFilterIfMissing(true);
+            FilterList filter3 = new FilterList(FilterList.Operator.MUST_PASS_ONE, filterMention);
+            filters.add(filter3);         
 
             // combine all filters
             FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ALL, filters);
