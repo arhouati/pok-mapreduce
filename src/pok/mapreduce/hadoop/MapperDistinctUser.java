@@ -20,6 +20,8 @@ public class MapperDistinctUser extends TableMapper<Text, LongWritable> {
 	private final LongWritable Positive = new LongWritable(1);
 	private final LongWritable Negative = new LongWritable(-1);
 	private final LongWritable Neutral = new LongWritable(0);
+	
+	private final PreProcessador val = new PreProcessador();
 
 	/*
  	private final FileWriter fstreamPositive;
