@@ -2,8 +2,10 @@
 *.class
 
 # Log file
+log
 *.log
 log/*
+/log/*
 
 # BlueJ files
 *.ctxt
