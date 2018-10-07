@@ -8,6 +8,7 @@ This project is an implementation of mapreduce algorithm based on Hadoop platfor
 ## API Reference
 
 This result is a part of research work, here is some of our publication :
+http://thescipub.com/abstract/10.3844/jcssp.2018.829.836
 https://link.springer.com/chapter/10.1007%2F978-3-319-30298-0_43 
 http://ieeexplore.ieee.org/document/7847689/
 https://link.springer.com/chapter/10.1007/978-3-319-46568-5_35
@@ -25,7 +26,7 @@ use GIT to track issues
 V2.0 : use spark to get more performance
 
 ## Release Note
-
+V1.1 : Add filter by date and by keywords
 V1.0 (current) : a standard mapreduce based on hadoop platform
 
 ## License
